@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Quản Lý Nhân Sự & Tiền Lương</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Header Navigation -->
+    <header class="bg-slate-900 text-white p-4 shadow-md no-print">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-indigo-600 rounded-xl">
+                    <i data-lucide="building" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide leading-none">HRM & PAYROLL PRO</h1>
+                    <p class="text-xs text-slate-400 mt-1">Quản lý Nhân sự & Tiền lương Công ty</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3 bg-slate-800 p-1.5 rounded-xl border border-slate-700">
+                <span class="text-xs px-2 text-slate-400 font-medium">Chế độ xem:</span>
+                <button id="btnAdmin" onclick="setRole('admin')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-indigo-600 text-white shadow">
+                    Quản trị (Admin)
+                </button>
+                <button id="btnStaff" onclick="setRole('staff')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition text-slate-300 hover:text-white">
+                    Nhân viên (User)
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-6 space-y-6 flex-1 w-full">
+
+        <!-- ================= ADMIN VIEW ================= -->
+        <div id="adminView" class="space-y-6">
+            
+            <!-- Summary Metric Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 no-print">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Tổng nhân sự</p>
+                        <h3 id="statTotalStaff" class="text-2xl font-bold text-slate-800 mt-1">0 người</h3>
+                    </div>
+                    <div class="p-3 bg-indigo-50 rounded-xl text-indigo-600"><i data-lucide="users"></i></div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Quỹ lương thực lĩnh</p>
+                        <h3 id="statTotalSalary" class="text-xl font-bold text-emerald-600 mt-1">0 đ</h3>
+                    </div>
+                    <div class="p-3 bg-emerald-50 rounded-xl text-emerald-600"><i data-lucide="dollar-sign"></i></div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Lương cao nhất</p>
+                        <h3 id="statMaxSalary" class="text-base font-bold text-amber-600 mt-1">-</h3>
+                        <p id="statMaxEmp" class="text-[11px] text-slate-400">NV: -</p>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-xl text-amber-600"><i data-lucide="trending-up"></i></div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Lương thấp nhất</p>
+                        <h3 id="statMinSalary" class="text-base font-bold text-rose-600 mt-1">-</h3>
+                        <p id="statMinEmp" class="text-[11px] text-slate-400">NV: -</p>
+                    </div>
+                    <div class="p-3 bg-rose-50 rounded-xl text-rose-600"><i data-lucide="trending-down"></i></div>
+                </div>
+            </div>
+
+            <!-- Filter and Action Bar -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 no-print">
+                <div class="p-4 sm:p-5 border-b border-slate-200/80 flex flex-col md:flex-row gap-4 justify-between items-center">
+                    
+                    <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                        <!-- Search input -->
+                        <div class="relative w-full sm:w-56">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+                            <input type="text" id="searchInput" oninput="renderAdminTable()" placeholder="Mã NV hoặc tên..." class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+
+                        <!-- Department filter -->
+                        <select id="filterDept" onchange="renderAdminTable()" class="border border-slate-300 rounded-xl p-2 text-xs sm:text-sm bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="ALL">Tất cả phòng ban</option>
+                            <option value="Công nghệ thông tin">Công nghệ thông tin</option>
+                            <option value="Kế toán - Tài chính">Kế toán - Tài chính</option>
+                            <option value="Hành chính Nhân sự">Hành chính Nhân sự</option>
+                            <option value="Kinh doanh - Marketing">Kinh doanh - Marketing</option>
+                        </select>
+
+                        <!-- Salary Range filter -->
+                        <select id="filterSalaryRange" onchange="renderAdminTable()" class="border border-slate-300 rounded-xl p-2 text-xs sm:text-sm bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="ALL">Tất cả khoảng lương</option>
+                            <option value="UNDER_10M">Dưới 10 triệu</option>
+                            <option value="10M_20M">Từ 10tr - 20 triệu</option>
+                            <option value="OVER_20M">Trên 20 triệu</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                        <button onclick="sortDataBySalary()" class="px-3.5 py-2 border border-slate-300 rounded-xl text-xs font-medium hover:bg-slate-50 transition flex items-center gap-1.5 text-slate-700">
+                            <i data-lucide="arrow-up-down" class="w-4 h-4"></i> Xếp Lương
+                        </button>
+
+                        <button onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i> Thêm Nhân Viên
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Admin Main Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead class="bg-slate-50 text-slate-600 uppercase text-[11px] font-bold border-b border-slate-200">
+                            <tr>
+                                <th class="p-3.5">Mã NV</th>
+                                <th class="p-3.5">Họ & Tên</th>
+                                <th class="p-3.5">Phòng Ban</th>
+                                <th class="p-3.5 text-center">Công</th>
+                                <th class="p-3.5 text-center">Số lần OT</th>
+                                <th class="p-3.5 text-right">Tiền OT (500k/lần)</th>
+                                <th class="p-3.5 text-right">Thưởng</th>
+                                <th class="p-3.5 text-right text-rose-600">BHXH (10.5%)</th>
+                                <th class="p-3.5 text-right text-rose-600">Thuế TNCN</th>
+                                <th class="p-3.5 text-right font-bold text-indigo-900">Thực Lĩnh</th>
+                                <th class="p-3.5 text-center">Hành Động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminTableBody" class="divide-y divide-slate-100">
+                            <!-- Rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= USER (STAFF) VIEW ================= -->
+        <div id="staffView" class="hidden space-y-6">
+            
+            <!-- User Switch Selector -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="flex items-center space-x-3">
+                    <div id="userAvatar" class="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                        A
+                    </div>
+                    <div>
+                        <h2 id="userNameDisplay" class="text-lg font-bold text-slate-900">Nguyễn Văn An</h2>
+                        <p id="userSubDisplay" class="text-xs text-slate-500">Mã: NV001 • Công nghệ thông tin</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 w-full sm:w-auto">
+                    <span class="text-xs font-medium text-slate-500">Đăng nhập với:</span>
+                    <select id="userSelectDropdown" onchange="onUserSelectChange()" class="border border-slate-300 rounded-xl p-2 text-xs font-semibold bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none flex-1 sm:flex-none">
+                        <!-- Render user list -->
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Attendance Calendar Grid (30 Days) -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
+                    <div class="flex items-center justify-between border-b pb-3 border-slate-100">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                                <i data-lucide="calendar" class="text-indigo-600 w-5 h-5"></i> Bảng Chấm Công 30 Ngày
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Tích chọn ngày đi làm và đánh dấu ô 'OT' nếu hôm đó có tăng ca.</p>
+                        </div>
+                        <div class="text-xs font-medium bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-xl border border-indigo-100">
+                            Công: <strong id="userTotalDays">0</strong>/26 | OT: <strong id="userTotalOT">0</strong> lần
+                        </div>
+                    </div>
+
+                    <!-- 30-Day Calendar Grid -->
+                    <div id="attendanceGrid" class="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-6 gap-2.5 pt-2">
+                        <!-- JS renders 30 calendar day cards -->
+                    </div>
+                </div>
+
+                <!-- Personal Payslip Breakdown Card -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
+                    <div class="flex justify-between items-center border-b pb-3 border-slate-100">
+                        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                            <i data-lucide="file-text" class="text-indigo-600 w-5 h-5"></i> Bảng Lương Cá Nhân
+                        </h3>
+                        <button onclick="printUserPayslip()" class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="In phiếu lương">
+                            <i data-lucide="printer" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <div id="userSalaryBreakdown" class="space-y-3 text-xs sm:text-sm">
+                        <!-- JS calculates real-time breakdown -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Form (Add / Edit Employee) -->
+    <div id="addModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100">
+            <div class="bg-slate-900 text-white p-4 px-6 flex justify-between items-center">
+                <h3 id="modalTitle" class="font-bold text-base flex items-center gap-2"><i data-lucide="user-plus"></i> Thêm Nhân Viên Mới</h3>
+                <button onclick="closeAddModal()" class="text-slate-400 hover:text-white"><i data-lucide="x"></i></button>
+            </div>
+            <form id="employeeForm" onsubmit="saveEmployee(event)" class="p-6 space-y-4 text-xs sm:text-sm">
+                <input type="hidden" id="editingIndex" value="-1">
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-600 mb-1">Mã Nhân Viên *</label>
+                        <input type="text" id="inputMaNV" required class="w-full border border-slate-300 p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-600 mb-1">Họ và Tên *</label>
+                        <input type="text" id="inputHoTen" required class="w-full border border-slate-300 p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Phòng Ban</label>
+                    <select id="inputPhongBan" class="w-full border border-slate-300 p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                        <option value="Công nghệ thông tin">Công nghệ thông tin</option>
+                        <option value="Kế toán - Tài chính">Kế toán - Tài chính</option>
+                        <option value="Hành chính Nhân sự">Hành chính Nhân sự</option>
+                        <option value="Kinh doanh - Marketing">Kinh doanh - Marketing</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-600 mb-1">Lương Cơ Bản (VNĐ)</label>
+                        <input type="number" id="inputLuongCB" value="12000000" min="0" step="500000" required class="w-full border border-slate-300 p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-600 mb-1">Tiền Thưởng Khen Thưởng (VNĐ)</label>
+                        <input type="number" id="inputThuong" value="0" min="0" step="100000" class="w-full border border-slate-300 p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+
+                <div class="pt-4 flex justify-end gap-3 border-t border-slate-100">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-50">Hủy</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm">Lưu Dữ Liệu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Bonus Quick-Edit -->
+    <div id="bonusModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden border border-slate-100 p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2"><i data-lucide="award" class="text-amber-500"></i> Thêm Thưởng Nhân Viên</h3>
+                <button onclick="closeBonusModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x"></i></button>
+            </div>
+
+            <input type="hidden" id="bonusEmpMaNV">
+            <div>
+                <p id="bonusEmpName" class="text-xs font-medium text-slate-500 mb-3"></p>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Số tiền thưởng (VNĐ):</label>
+                <input type="number" id="bonusAmountInput" step="100000" min="0" class="w-full border border-slate-300 p-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeBonusModal()" class="px-3.5 py-1.5 border rounded-xl text-xs font-medium">Hủy</button>
+                <button onclick="saveBonusAmount()" class="px-4 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-semibold">Cập Nhật</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application JavaScript -->
+    <script>
+        // Generate initial 30 days attendance record (all true initially for work, some OT)
+        function generateAttendance(workCount = 26, otCount = 2) {
+            const days = [];
+            for (let i = 1; i <= 30; i++) {
+                const isWork = i <= workCount;
+                const isOT = isWork && (i <= otCount);
+                days.push({ day: i, work: isWork, ot: isOT });
+            }
+            return days;
+        }
+
+        // Default Employee Data
+        let employees = [
+            { maNV: "NV001", hoTen: "Nguyễn Văn An", phongBan: "Công nghệ thông tin", luongCB: 18000000, thuong: 2000000, attendance: generateAttendance(25, 4) },
+            { maNV: "NV002", hoTen: "Trần Thị Bích", phongBan: "Kế toán - Tài chính", luongCB: 16000000, thuong: 1000000, attendance: generateAttendance(26, 0) },
+            { maNV: "NV003", hoTen: "Lê Hoàng Cường", phongBan: "Kinh doanh - Marketing", luongCB: 22000000, thuong: 4000000, attendance: generateAttendance(24, 6) },
+            { maNV: "NV004", hoTen: "Phạm Minh Dung", phongBan: "Hành chính Nhân sự", luongCB: 9500000, thuong: 500000, attendance: generateAttendance(22, 1) },
+            { maNV: "NV005", hoTen: "Vũ Quốc Giang", phongBan: "Công nghệ thông tin", luongCB: 14000000, thuong: 1500000, attendance: generateAttendance(26, 3) }
+        ];
+
+        let currentRole = 'admin';
+        let activeUserMaNV = 'NV001';
+        let sortAsc = false;
+
+        // Currency Formatter
+        function formatVND(amount) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Math.round(amount));
+        }
+
+        // Compute Attendance Counts
+        function getAttendanceCounts(attendanceList) {
+            let workDays = 0;
+            let otShifts = 0;
+            attendanceList.forEach(d => {
+                if (d.work) {
+                    workDays++;
+                    if (d.ot) otShifts++;
+                }
+            });
+            return { workDays, otShifts };
+        }
+
+        // Financial & Tax Calculations
+        function calculateSalaryDetails(emp) {
+            const counts = getAttendanceCounts(emp.attendance);
+            
+            // Base earnings based on standard 26 workdays
+            const luongCong = (emp.luongCB / 26) * counts.workDays;
+            
+            // OT allowance: 500k per OT shift
+            const tienOT = counts.otShifts * 500000;
+            
+            // Social Insurance (BHXH): 10.5%
+            const bhxh = luongCong * 0.105;
+            
+            // Taxable Income (Giảm trừ bản thân 11tr)
+            const thuNhapChiuThue = Math.max(0, (luongCong + tienOT + emp.thuong) - bhxh);
+            const thuNhapTinhThue = Math.max(0, thuNhapChiuThue - 11000000);
+            
+            let thueTNCN = 0;
+            if (thuNhapTinhThue > 0) {
+                if (thuNhapTinhThue <= 5000000) thueTNCN = thuNhapTinhThue * 0.05;
+                else if (thuNhapTinhThue <= 10000000) thueTNCN = 250000 + (thuNhapTinhThue - 5000000) * 0.1;
+                else if (thuNhapTinhThue <= 18000000) thueTNCN = 750000 + (thuNhapTinhThue - 10000000) * 0.15;
+                else thueTNCN = 1950000 + (thuNhapTinhThue - 18000000) * 0.2;
+            }
+
+            const thucLinh = (luongCong + tienOT + emp.thuong) - bhxh - thueTNCN;
+
+            return {
+                workDays: counts.workDays,
+                otShifts: counts.otShifts,
+                luongCong,
+                tienOT,
+                bhxh,
+                thueTNCN,
+                thucLinh
+            };
+        }
+
+        // Role Switcher
+        function setRole(role) {
+            currentRole = role;
+            const btnAdmin = document.getElementById('btnAdmin');
+            const btnStaff = document.getElementById('btnStaff');
+            const adminView = document.getElementById('adminView');
+            const staffView = document.getElementById('staffView');
+
+            if (role === 'admin') {
+                btnAdmin.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-indigo-600 text-white shadow";
+                btnStaff.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition text-slate-300 hover:text-white";
+                adminView.classList.remove('hidden');
+                staffView.classList.add('hidden');
+                renderAdminTable();
+            } else {
+                btnStaff.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-indigo-600 text-white shadow";
+                btnAdmin.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition text-slate-300 hover:text-white";
+                adminView.classList.add('hidden');
+                staffView.classList.remove('hidden');
+                renderStaffView();
+            }
+        }
+
+        // Admin View Render
+        function renderAdminTable() {
+            const tbody = document.getElementById('adminTableBody');
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const deptFilter = document.getElementById('filterDept').value;
+            const salaryFilter = document.getElementById('filterSalaryRange').value;
+            tbody.innerHTML = '';
+
+            // Compute salaries to identify min/max
+            let minSalary = Infinity, maxSalary = -Infinity;
+            let minEmp = null, maxEmp = null;
+
+            employees.forEach(emp => {
+                const s = calculateSalaryDetails(emp).thucLinh;
+                if (s > maxSalary) { maxSalary = s; maxEmp = emp; }
+                if (s < minSalary) { minSalary = s; minEmp = emp; }
+            });
+
+            // Update stats
+            document.getElementById('statTotalStaff').innerText = `${employees.length} người`;
+            const totalFund = employees.reduce((acc, curr) => acc + calculateSalaryDetails(curr).thucLinh, 0);
+            document.getElementById('statTotalSalary').innerText = formatVND(totalFund);
+
+            if (maxEmp) {
+                document.getElementById('statMaxSalary').innerText = formatVND(maxSalary);
+                document.getElementById('statMaxEmp').innerText = `${maxEmp.maNV} - ${maxEmp.hoTen}`;
+            }
+            if (minEmp) {
+                document.getElementById('statMinSalary').innerText = formatVND(minSalary);
+                document.getElementById('statMinEmp').innerText = `${minEmp.maNV} - ${minEmp.hoTen}`;
+            }
+
+            // Filter logic
+            let filtered = employees.filter(emp => {
+                const matchSearch = emp.maNV.toLowerCase().includes(searchQuery) || emp.hoTen.toLowerCase().includes(searchQuery);
+                const matchDept = deptFilter === 'ALL' || emp.phongBan === deptFilter;
+                
+                const calc = calculateSalaryDetails(emp);
+                let matchSalary = true;
+                if (salaryFilter === 'UNDER_10M') matchSalary = calc.thucLinh < 10000000;
+                else if (salaryFilter === '10M_20M') matchSalary = calc.thucLinh >= 10000000 && calc.thucLinh <= 20000000;
+                else if (salaryFilter === 'OVER_20M') matchSalary = calc.thucLinh > 20000000;
+
+                return matchSearch && matchDept && matchSalary;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colSpan="11" class="p-6 text-center text-slate-400">Không tìm thấy dữ liệu nhân viên.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(emp => {
+                const calc = calculateSalaryDetails(emp);
+                const isMax = maxEmp && emp.maNV === maxEmp.maNV;
+                const isMin = minEmp && emp.maNV === minEmp.maNV;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+
+                tr.innerHTML = `
+                    <td class="p-3.5 font-bold text-indigo-600">${emp.maNV}</td>
+                    <td class="p-3.5">
+                        <div class="font-medium text-slate-900 flex items-center gap-1.5">
+                            <span>${emp.hoTen}</span>
+                            ${isMax ? `<span class="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5"><i data-lucide="trending-up" class="w-3 h-3 text-amber-600"></i>Lương cao nhất</span>` : ''}
+                            ${isMin ? `<span class="bg-rose-100 text-rose-800 text-[10px] font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5"><i data-lucide="trending-down" class="w-3 h-3 text-rose-600"></i>Lương thấp nhất</span>` : ''}
+                        </div>
+                    </td>
+                    <td class="p-3.5 text-slate-600">${emp.phongBan}</td>
+                    <td class="p-3.5 text-center font-bold text-slate-700">${calc.workDays}/26</td>
+                    <td class="p-3.5 text-center font-bold text-indigo-600">${calc.otShifts} lần</td>
+                    <td class="p-3.5 text-right font-medium text-slate-600">${formatVND(calc.tienOT)}</td>
+                    <td class="p-3.5 text-right font-medium text-amber-600">${formatVND(emp.thuong)}</td>
+                    <td class="p-3.5 text-right font-medium text-rose-500">-${formatVND(calc.bhxh)}</td>
+                    <td class="p-3.5 text-right font-medium text-rose-500">-${formatVND(calc.thueTNCN)}</td>
+                    <td class="p-3.5 text-right font-extrabold text-emerald-600 text-sm">${formatVND(calc.thucLinh)}</td>
+                    <td class="p-3.5 text-center">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="openBonusModal('${emp.maNV}')" title="Thưởng" class="p-1.5 hover:bg-slate-100 text-amber-600 rounded-lg transition"><i data-lucide="award" class="w-4 h-4"></i></button>
+                            <button onclick="openEditModal('${emp.maNV}')" title="Sửa" class="p-1.5 hover:bg-slate-100 text-slate-600 rounded-lg transition"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                            <button onclick="deleteEmployee('${emp.maNV}')" title="Xóa" class="p-1.5 hover:bg-slate-100 text-rose-600 rounded-lg transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            lucide.createIcons();
+        }
+
+        // Staff (User) View Render
+        function renderStaffView() {
+            // Populate user dropdown
+            const dropdown = document.getElementById('userSelectDropdown');
+            dropdown.innerHTML = employees.map(e => `<option value="${e.maNV}" ${e.maNV === activeUserMaNV ? 'selected' : ''}>${e.maNV} - ${e.hoTen}</option>`).join('');
+
+            const emp = employees.find(e => e.maNV === activeUserMaNV) || employees[0];
+            activeUserMaNV = emp.maNV;
+
+            document.getElementById('userNameDisplay').innerText = emp.hoTen;
+            document.getElementById('userSubDisplay').innerText = `Mã: ${emp.maNV} • ${emp.phongBan}`;
+            document.getElementById('userAvatar').innerText = emp.hoTen.charAt(0);
+
+            const calc = calculateSalaryDetails(emp);
+            document.getElementById('userTotalDays').innerText = calc.workDays;
+            document.getElementById('userTotalOT').innerText = calc.otShifts;
+
+            // Render 30-Day Attendance Grid
+            const grid = document.getElementById('attendanceGrid');
+            grid.innerHTML = '';
+
+            emp.attendance.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-xl border text-xs transition flex flex-col justify-between space-y-2 ${
+                    item.work ? 'bg-indigo-50/50 border-indigo-200' : 'bg-slate-50 border-slate-200 opacity-60'
+                }`;
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-slate-700">Ngày ${item.day}</span>
+                        <input type="checkbox" ${item.work ? 'checked' : ''} onchange="toggleWorkDay('${emp.maNV}', ${index})" class="w-4 h-4 text-indigo-600 rounded cursor-pointer">
+                    </div>
+
+                    <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                        <span class="text-[11px] font-medium text-slate-500">Tăng ca (OT)</span>
+                        <input type="checkbox" ${item.ot ? 'checked' : ''} ${!item.work ? 'disabled' : ''} onchange="toggleOTDay('${emp.maNV}', ${index})" class="w-3.5 h-3.5 text-amber-600 rounded cursor-pointer disabled:opacity-30">
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            // Render Salary Breakdown
+            const bd = document.getElementById('userSalaryBreakdown');
+            bd.innerHTML = `
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                    <span class="text-slate-500">Lương cơ bản tháng:</span>
+                    <span class="font-semibold">${formatVND(emp.luongCB)}</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                    <span class="text-slate-500">Lương công (${calc.workDays}/26 ngày):</span>
+                    <span class="font-semibold">${formatVND(calc.luongCong)}</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                    <span class="text-slate-500">Tiền OT (${calc.otShifts} lần x 500k):</span>
+                    <span class="font-semibold text-emerald-600">+${formatVND(calc.tienOT)}</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                    <span class="text-slate-500">Khen thưởng:</span>
+                    <span class="font-semibold text-amber-600">+${formatVND(emp.thuong)}</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                    <span class="text-slate-500">Bảo hiểm xã hội (10.5%):</span>
+                    <span class="font-semibold text-rose-500">-${formatVND(calc.bhxh)}</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                    <span class="text-slate-500">Thuế thu nhập cá nhân:</span>
+                    <span class="font-semibold text-rose-500">-${formatVND(calc.thueTNCN)}</span>
+                </div>
+                <div class="pt-3 mt-2 border-t border-slate-200 flex justify-between items-center bg-indigo-50/60 p-3 rounded-xl border">
+                    <span class="font-bold text-slate-800">LỰC LĨNH THỰC TẾ:</span>
+                    <span class="text-base font-extrabold text-indigo-700">${formatVND(calc.thucLinh)}</span>
+                </div>
+            `;
+
+            lucide.createIcons();
+        }
+
+        // Attendance Toggles
+        function toggleWorkDay(maNV, index) {
+            const emp = employees.find(e => e.maNV === maNV);
+            if (emp) {
+                emp.attendance[index].work = !emp.attendance[index].work;
+                if (!emp.attendance[index].work) {
+                    emp.attendance[index].ot = false; // Reset OT if not working
+                }
+                renderStaffView();
+            }
+        }
+
+        function toggleOTDay(maNV, index) {
+            const emp = employees.find(e => e.maNV === maNV);
+            if (emp) {
+                emp.attendance[index].ot = !emp.attendance[index].ot;
+                renderStaffView();
+            }
+        }
+
+        function onUserSelectChange() {
+            activeUserMaNV = document.getElementById('userSelectDropdown').value;
+            renderStaffView();
+        }
+
+        // Admin CRUD
+        function openAddModal() {
+            document.getElementById('editingIndex').value = "-1";
+            document.getElementById('modalTitle').innerHTML = `<i data-lucide="user-plus"></i> Thêm Nhân Viên Mới`;
+            document.getElementById('employeeForm').reset();
+            document.getElementById('inputMaNV').readOnly = false;
+            document.getElementById('addModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function openEditModal(maNV) {
+            const idx = employees.findIndex(e => e.maNV === maNV);
+            if (idx === -1) return;
+            const emp = employees[idx];
+
+            document.getElementById('editingIndex').value = idx;
+            document.getElementById('modalTitle').innerHTML = `<i data-lucide="edit-3"></i> Sửa Hồ Sơ Nhân Viên`;
+            document.getElementById('inputMaNV').value = emp.maNV;
+            document.getElementById('inputMaNV').readOnly = true;
+            document.getElementById('inputHoTen').value = emp.hoTen;
+            document.getElementById('inputPhongBan').value = emp.phongBan;
+            document.getElementById('inputLuongCB').value = emp.luongCB;
+            document.getElementById('inputThuong').value = emp.thuong;
+
+            document.getElementById('addModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').classList.add('hidden');
+        }
+
+        function saveEmployee(e) {
+            e.preventDefault();
+            const idx = parseInt(document.getElementById('editingIndex').value);
+            const maNV = document.getElementById('inputMaNV').value;
+            const hoTen = document.getElementById('inputHoTen').value;
+            const phongBan = document.getElementById('inputPhongBan').value;
+            const luongCB = parseFloat(document.getElementById('inputLuongCB').value) || 0;
+            const thuong = parseFloat(document.getElementById('inputThuong').value) || 0;
+
+            if (idx === -1) {
+                if (employees.some(emp => emp.maNV === maNV)) {
+                    alert("Mã nhân viên đã tồn tại!");
+                    return;
+                }
+                employees.push({
+                    maNV,
+                    hoTen,
+                    phongBan,
+                    luongCB,
+                    thuong,
+                    attendance: generateAttendance(26, 0)
+                });
+            } else {
+                employees[idx].hoTen = hoTen;
+                employees[idx].phongBan = phongBan;
+                employees[idx].luongCB = luongCB;
+                employees[idx].thuong = thuong;
+            }
+
+            closeAddModal();
+            renderAdminTable();
+        }
+
+        function deleteEmployee(maNV) {
+            if (confirm(`Bạn có chắc chắn muốn xóa nhân viên ${maNV}?`)) {
+                employees = employees.filter(e => e.maNV !== maNV);
+                if (activeUserMaNV === maNV && employees.length > 0) {
+                    activeUserMaNV = employees[0].maNV;
+                }
+                renderAdminTable();
+            }
+        }
+
+        // Bonus Quick Modal
+        function openBonusModal(maNV) {
+            const emp = employees.find(e => e.maNV === maNV);
+            if (!emp) return;
+            document.getElementById('bonusEmpMaNV').value = emp.maNV;
+            document.getElementById('bonusEmpName').innerText = `Nhân viên: ${emp.maNV} - ${emp.hoTen}`;
+            document.getElementById('bonusAmountInput').value = emp.thuong;
+            document.getElementById('bonusModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeBonusModal() {
+            document.getElementById('bonusModal').classList.add('hidden');
+        }
+
+        function saveBonusAmount() {
+            const maNV = document.getElementById('bonusEmpMaNV').value;
+            const amount = parseFloat(document.getElementById('bonusAmountInput').value) || 0;
+            const emp = employees.find(e => e.maNV === maNV);
+            if (emp) {
+                emp.thuong = amount;
+                closeBonusModal();
+                renderAdminTable();
+            }
+        }
+
+        // Sorting
+        function sortDataBySalary() {
+            sortAsc = !sortAsc;
+            employees.sort((a, b) => {
+                const sA = calculateSalaryDetails(a).thucLinh;
+                const sB = calculateSalaryDetails(b).thucLinh;
+                return sortAsc ? sA - sB : sB - sA;
+            });
+            renderAdminTable();
+        }
+
+        function printUserPayslip() {
+            window.print();
+        }
+
+        // Init App
+        window.onload = function() {
+            renderAdminTable();
+        };
+    </script>
+</body>
+</html>
